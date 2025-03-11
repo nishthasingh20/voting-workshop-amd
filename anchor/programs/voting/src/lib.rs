@@ -54,6 +54,18 @@ pub mod voting {
     }
 
     pub fn vote(ctx: Context<Vote>, _candidate_name: String, _poll_id: u64) -> Result<()> {
+        let poll = &mut ctx.accounts.poll;
+
+        // Check for voting closed
+        let clock = Clock::get().unwrap();
+        let current_time = clock.unix_timestamp as u64;
+
+        // Check if voting has started
+        require!(poll.poll_start <= current_time, ErrorCode::VotingNotStarted);
+
+        // Check if voting is still open
+        require!(current_time < poll.poll_end / 1000, ErrorCode::VotingClosed);
+
         let candidate = &mut ctx.accounts.candidate;
         candidate.candidate_votes += 1;
 
@@ -154,4 +166,8 @@ pub enum ErrorCode {
     PollNotActive,
     #[msg("Invalid start time")]
     InvalidStartTime,
+    #[msg("Voting not started")]
+    VotingNotStarted,
+    #[msg("Voting closed")]
+    VotingClosed,
 }

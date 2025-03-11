@@ -80,6 +80,24 @@ describe("Voting", () => {
     expect(poll.candidateAmount).toBe(2);
   });
 
+  // Check voting start
+  it("fails to vote because voting has not started", async () => {
+    await expect(
+      votingProgram.methods
+        .vote("Pink", new anchor.BN(1))
+        .rpc()
+    ).rejects.toThrow(/VotingNotStarted/);
+  });
+
+  // Check voting end
+  it("fails to vote because voting has ended", async () => {
+    await expect(
+      votingProgram.methods
+        .vote("Pink", new anchor.BN(1))
+        .rpc()
+    ).rejects.toThrow(/VotingClosed/);
+  });
+
   it("vote candidates", async () => {
     await votingProgram.methods.vote(
       "Pink",
