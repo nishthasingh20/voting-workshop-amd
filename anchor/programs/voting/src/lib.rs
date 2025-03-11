@@ -8,12 +8,13 @@ declare_id!("coUnmi3oBUtwtd9fjeAvSsJssXh5A5xyPbhpewyzRVF");
 pub mod voting {
     use super::*;
 
-    pub fn initialize_poll(ctx: Context<InitializePoll>, 
-                            poll_id: u64,
-                            description: String,
-                            poll_start: u64,
-                            poll_end: u64) -> Result<()> {
-
+    pub fn initialize_poll(
+        ctx: Context<InitializePoll>,
+        poll_id: u64,
+        description: String,
+        poll_start: u64,
+        poll_end: u64,
+    ) -> Result<()> {
         let poll = &mut ctx.accounts.poll;
         poll.poll_id = poll_id;
         poll.description = description;
@@ -23,13 +24,19 @@ pub mod voting {
         Ok(())
     }
 
-    pub fn initialize_candidate(ctx: Context<InitializeCandidate>, 
-                                candidate_name: String,
-                                _poll_id: u64
-                            ) -> Result<()> {
+    pub fn initialize_candidate(
+        ctx: Context<InitializeCandidate>,
+        candidate_name: String,
+        _poll_id: u64,
+    ) -> Result<()> {
         let candidate = &mut ctx.accounts.candidate;
+        let poll_account = &mut ctx.accounts.poll;
+
         candidate.candidate_name = candidate_name;
         candidate.candidate_votes = 0;
+
+        // Increment candidate amount
+        poll_account.candidate_amount += 1;
         Ok(())
     }
 
@@ -41,7 +48,6 @@ pub mod voting {
         msg!("Votes: {}", candidate.candidate_votes);
         Ok(())
     }
-
 }
 
 #[derive(Accounts)]
@@ -65,7 +71,6 @@ pub struct Vote<'info> {
 
     pub system_program: Program<'info, System>,
 }
-
 
 #[derive(Accounts)]
 #[instruction(candidate_name: String, poll_id: u64)]
