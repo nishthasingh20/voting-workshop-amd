@@ -34,6 +34,7 @@ pub mod voting {
         poll.poll_start = poll_start;
         poll.poll_end = poll_end;
         poll.candidate_amount = 0;
+        poll.poll_votes = 0;
         Ok(())
     }
 
@@ -68,6 +69,8 @@ pub mod voting {
 
         let candidate = &mut ctx.accounts.candidate;
         candidate.candidate_votes += 1;
+        
+        poll.poll_votes += 1;
 
         msg!("Voted for candidate: {}", candidate.candidate_name);
         msg!("Votes: {}", candidate.candidate_votes);
@@ -154,6 +157,7 @@ pub struct Poll {
     pub poll_start: u64,
     pub poll_end: u64,
     pub candidate_amount: u64,
+    pub poll_votes: u64,
 }
 
 #[error_code]
