@@ -112,4 +112,18 @@ describe("Voting", () => {
     expect(blueCandidate.candidateVotes.toNumber()).toBe(1);
     expect(blueCandidate.candidateName).toBe("Blue");
   });
+
+  // Fails to create poll
+  it("fails to initialize a poll due to invalid poll_end timestamp", async () => {
+    await expect(
+      votingProgram.methods
+        .initializePoll(
+          new anchor.BN(2),
+          "Is Solana the fastest blockchain?",
+          new anchor.BN(100),
+          new anchor.BN(Math.floor(Date.now() / 1000) - 100) // Invalid poll_end 
+        )
+        .rpc()
+    ).rejects.toThrow(/InvalidUnixTimestamp/);
+  });
 });

@@ -15,6 +15,19 @@ pub mod voting {
         poll_start: u64,
         poll_end: u64,
     ) -> Result<()> {
+        let clock = Clock::get().unwrap();
+        let current_time = clock.unix_timestamp as u64;
+
+        // Check unix timestamp
+        require!(poll_end > 1_000_000_000, ErrorCode::InvalidUnixTimestamp);
+        // Check end time
+        require!(
+            poll_end / 1000 > current_time,
+            ErrorCode::InvalidPollEndTime
+        );
+        // Check start_time < end_time
+        require!(poll_start < poll_end, ErrorCode::InvalidStartTime);
+
         let poll = &mut ctx.accounts.poll;
         poll.poll_id = poll_id;
         poll.description = description;
@@ -129,4 +142,16 @@ pub struct Poll {
     pub poll_start: u64,
     pub poll_end: u64,
     pub candidate_amount: u64,
+}
+
+#[error_code]
+pub enum ErrorCode {
+    #[msg("Invalid poll end time")]
+    InvalidPollEndTime,
+    #[msg("Invalid unix timestamp")]
+    InvalidUnixTimestamp,
+    #[msg("Poll inactive")]
+    PollNotActive,
+    #[msg("Invalid start time")]
+    InvalidStartTime,
 }
