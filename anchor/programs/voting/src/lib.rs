@@ -17,6 +17,26 @@ pub enum PollError {
 pub mod voting {
     use super::*;
 
+    pub fn initialize_poll(
+        ctx: Context<InitializePoll>,
+        poll_id: u64,
+        description: String,
+        poll_start: u64,
+        poll_end: u64,
+    ) -> Result<()> {
+        let clock = Clock::get().unwrap();
+        let current_time = clock.unix_timestamp as u64;
+
+        // Check unix timestamp
+        require!(poll_end > 1_000_000_000, ErrorCode::InvalidUnixTimestamp);
+        // Check end time
+        require!(
+            poll_end / 1000 > current_time,
+            ErrorCode::InvalidPollEndTime
+        );
+        // Check start_time < end_time
+        require!(poll_start < poll_end, ErrorCode::InvalidStartTime);
+
     pub fn initialize_poll(ctx: Context<InitializePoll>, 
                             poll_id: u64,
                             description: String,
@@ -38,28 +58,48 @@ pub mod voting {
         poll.poll_start = poll_start;
         poll.poll_end = poll_end;
         poll.candidate_amount = 0;
+        poll.poll_votes = 0;
         Ok(())
     }
 
-    pub fn initialize_candidate(ctx: Context<InitializeCandidate>, 
-                                candidate_name: String,
-                                _poll_id: u64
-                            ) -> Result<()> {
+    pub fn initialize_candidate(
+        ctx: Context<InitializeCandidate>,
+        candidate_name: String,
+        _poll_id: u64,
+    ) -> Result<()> {
         let candidate = &mut ctx.accounts.candidate;
+        let poll_account = &mut ctx.accounts.poll;
+
         candidate.candidate_name = candidate_name;
         candidate.candidate_votes = 0;
+
+        // Increment candidate amount
+        poll_account.candidate_amount += 1;
         Ok(())
     }
 
     pub fn vote(ctx: Context<Vote>, _candidate_name: String, _poll_id: u64) -> Result<()> {
+        let poll = &mut ctx.accounts.poll;
+
+        // Check for voting closed
+        let clock = Clock::get().unwrap();
+        let current_time = clock.unix_timestamp as u64;
+
+        // Check if voting has started
+        require!(poll.poll_start <= current_time, ErrorCode::VotingNotStarted);
+
+        // Check if voting is still open
+        require!(current_time < poll.poll_end / 1000, ErrorCode::VotingClosed);
+
         let candidate = &mut ctx.accounts.candidate;
         candidate.candidate_votes += 1;
+        
+        poll.poll_votes += 1;
 
         msg!("Voted for candidate: {}", candidate.candidate_name);
         msg!("Votes: {}", candidate.candidate_votes);
         Ok(())
     }
-
 }
 
 #[derive(Accounts)]
@@ -83,7 +123,6 @@ pub struct Vote<'info> {
 
     pub system_program: Program<'info, System>,
 }
-
 
 #[derive(Accounts)]
 #[instruction(candidate_name: String, poll_id: u64)]
@@ -142,4 +181,23 @@ pub struct Poll {
     pub poll_start: u64,
     pub poll_end: u64,
     pub candidate_amount: u64,
+    pub poll_votes: u64,
+}
+
+#[error_code]
+pub enum ErrorCode {
+    #[msg("Invalid poll end time")]
+    InvalidPollEndTime,
+    #[msg("Invalid unix timestamp")]
+    InvalidUnixTimestamp,
+    #[msg("Poll inactive")]
+    PollNotActive,
+    #[msg("Invalid start time")]
+    InvalidStartTime,
+    #[msg("Voting not started")]
+    VotingNotStarted,
+    #[msg("Voting closed")]
+    VotingClosed,
+}
+
 }

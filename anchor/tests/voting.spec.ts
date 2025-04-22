@@ -116,12 +116,47 @@ describe("Voting", () => {
     );
     const blueCandidate = await votingProgram.account.candidate.fetch(blueAddress);
     expect(blueCandidate.candidateVotes.toNumber()).toBe(0);
+    expect(blueCandidate.candidateName).toBe("Blue");
+
+    const [pollAddress] = PublicKey.findProgramAddressSync(
+      [new anchor.BN(1).toArrayLike(Buffer, "le", 8)],
+      votingProgram.programId,
+    );
+
+    // Check the candidate amount
+    const poll = await votingProgram.account.poll.fetch(pollAddress);
+    expect(poll.candidateAmount).toBe(2);
+  });
+
+  // Check voting start
+  it("fails to vote because voting has not started", async () => {
+    await expect(
+      votingProgram.methods
+        .vote("Pink", new anchor.BN(1))
+        .rpc()
+    ).rejects.toThrow(/VotingNotStarted/);
+  });
+
+  // Check voting end
+  it("fails to vote because voting has ended", async () => {
+    await expect(
+      votingProgram.methods
+        .vote("Pink", new anchor.BN(1))
+        .rpc()
+    ).rejects.toThrow(/VotingClosed/);
+  });
+
+  it("vote candidates", async () => {
   });
 
   it("votes for candidates and updates poll total votes", async () => {
     await votingProgram.methods.vote("Pink", new anchor.BN(1)).rpc();
     await votingProgram.methods.vote("Blue", new anchor.BN(1)).rpc();
     await votingProgram.methods.vote("Pink", new anchor.BN(1)).rpc();
+
+    const [pinkAddress] = PublicKey.findProgramAddressSync(
+      [new anchor.BN(1).toArrayLike(Buffer, "le", 8), Buffer.from("Pink")],
+      votingProgram.programId
 
     const [pollAddress] = PublicKey.findProgramAddressSync(
       [new anchor.BN(1).toArrayLike(Buffer, "le", 8)],
@@ -135,6 +170,7 @@ describe("Voting", () => {
     expect(pinkCandidate.candidateVotes.toNumber()).toBe(1);
 
     const pinkCandidate = await votingProgram.account.candidate.fetch(pinkAddress);
+    console.log("Pink Candidate:", pinkCandidate);
     expect(pinkCandidate.candidateVotes.toNumber()).toBe(2);
 
     // Second vote should fail
@@ -155,7 +191,7 @@ describe("Voting", () => {
     // Different user can still vote for Blue
     const [blueAddress] = PublicKey.findProgramAddressSync(
       [new anchor.BN(1).toArrayLike(Buffer, "le", 8), Buffer.from("Blue")],
-      votingProgram.programId,
+      votingProgram.programId
     );
 
     await votingProgram.methods.vote(
@@ -164,6 +200,33 @@ describe("Voting", () => {
     ).rpc();
 
     const blueCandidate = await votingProgram.account.candidate.fetch(blueAddress);
+    console.log("Blue Candidate:", blueCandidate);
+    expect(blueCandidate.candidateVotes.toNumber()).toBe(1);
+    expect(blueCandidate.candidateName).toBe("Blue");
+
+    const [pollAddress] = PublicKey.findProgramAddressSync(
+      [new anchor.BN(1).toArrayLike(Buffer, "le", 8)],
+      votingProgram.programId
+    );
+
+    // Check the poll votes
+    const poll = await votingProgram.account.poll.fetch(pollAddress);
+    console.log("Poll Data:", poll);
+    expect(poll.pollVotes.toNumber()).toBe(3);
+  });
+
+  // Fails to create poll
+  it("fails to initialize a poll due to invalid poll_end timestamp", async () => {
+    await expect(
+      votingProgram.methods
+        .initializePoll(
+          new anchor.BN(2),
+          "Is Solana the fastest blockchain?",
+          new anchor.BN(100),
+          new anchor.BN(Math.floor(Date.now() / 1000) - 100) // Invalid poll_end 
+        )
+        .rpc()
+    ).rejects.toThrow(/InvalidUnixTimestamp/);
     expect(blueCandidate.candidateVotes.toNumber()).toBe(1);
   });
 });
