@@ -219,6 +219,38 @@ export type Voting = {
       ]
     }
   ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "invalidPollEndTime",
+      "msg": "Invalid poll end time"
+    },
+    {
+      "code": 6001,
+      "name": "invalidUnixTimestamp",
+      "msg": "Invalid unix timestamp"
+    },
+    {
+      "code": 6002,
+      "name": "pollNotActive",
+      "msg": "Poll inactive"
+    },
+    {
+      "code": 6003,
+      "name": "invalidStartTime",
+      "msg": "Invalid start time"
+    },
+    {
+      "code": 6004,
+      "name": "votingNotStarted",
+      "msg": "Voting not started"
+    },
+    {
+      "code": 6005,
+      "name": "votingClosed",
+      "msg": "Voting closed"
+    }
+  ],
   "types": [
     {
       "name": "candidate",
@@ -259,6 +291,10 @@ export type Voting = {
           },
           {
             "name": "candidateAmount",
+            "type": "u64"
+          },
+          {
+            "name": "pollVotes",
             "type": "u64"
           }
         ]
